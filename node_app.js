@@ -1,3 +1,5 @@
+var firebase = require("firebase");
+
 var firebaseConfig = {
     apiKey: "AIzaSyCwki_8ddB4QoP8Vz1AD5NhohFZStMjcO8",
     authDomain: "loginform-5b0b4.firebaseapp.com",
@@ -9,19 +11,19 @@ var firebaseConfig = {
     measurementId: "G-FMRDX5141Q"
   };
 
- // admin.initializeApp(config);
+  firebase.initializeApp(firebaseConfig);
 
-const firebase = require('firebase-admin');
+const admin = require('firebase-admin');
 var serviceAccount = require("./loginKey.json");
 require("firebase/auth");
 
-firebase.initializeApp({
-  credential: firebase.credential.cert(serviceAccount)
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
   
 });
-var auth = firebase.auth();
+var auth = admin.auth();
 
-let storage = firebase.firestore();
+let storage = admin.firestore();
 
 var express=require("express"); 
 var bodyParser=require("body-parser"); 
@@ -49,61 +51,20 @@ app.post('/sign_up', function(req,res){
 	var emailid =req.body.email;
 	var name = req.body.username; 
 	var passw = req.body.password;
-	//var pass = CryptoJS.AES.encrypt(req.body.password, "Ronaldo").toString();  
-	 
-
-	// var data = { 
-	// 	"name": name, 
-	// 	"email":email, 
-	// 	"password":pass, 
-	// 	"phone":phone 
-	// } 
-// db.collection('details').insertOne(data,function(err, collection){ 
-// 		if (err) throw err; 
-// 		console.log("Record inserted Successfully"); 
-			
-// 	});
-	firebase.auth().createUser({
-  		uid: name,
-  		email: emailid,
-  		pass: passw
-})
-  .then(function(userRecord) {
-    // See the UserRecord reference doc for the contents of userRecord.
-    console.log('Successfully created new user:', userRecord.uid);
-  })
-  .catch(function(error) {
-    console.log('Error creating new user:', error);
-  });
-
-  
-
-	// admin.auth().createUserWithEmailAndPassword(emailid, passw).catch(function(error) {
- //  // Handle Errors here.
- //  		var errorCode = error.code;
- //  		var errorMessage = error.message;
- //  // ...
-	// });
-
 	
+	firebase.auth().createUserWithEmailAndPassword(emailid, passw).then(function(user){
+		var user = firebase.auth().currentUser;
+		User.create({email: user.emailid, password: password, credits: 10000.00});
+		console.log(user.email);
+		res.send(user);
+	}).
 
-
-	/*
-	storage.collection("users").add({
-		"name": name, 
-		"email":email, 
-		"password":pass 
-		
-    
-  })
-  .then(function(docRef) {
-    console.log("Document written with ID: ", docRef.id);
-    })
-  .catch(function(error) {
-    console.error("Error adding document: ", error);
-  });
-
-  */
+	catch(function(error) {
+  // Handle Errors here.
+  		var errorCode = error.code;
+  		var errorMessage = error.message;
+  // ...
+	});
 
   return res.redirect('/signup');
  });
@@ -112,61 +73,62 @@ app.post('/sign_up', function(req,res){
 app.post('/log_in', function(req,res){ 
 	var userid =req.body.user_name;
 	var passw = req.body.pass_word;
-	console.log(userid);
-	console.log(passw);
-	//var pass = CryptoJS.AES.encrypt(req.body.password, "Ronaldo").toString();  
-	 
 
-	// var data = { 
-	// 	"name": name, 
-	// 	"email":email, 
-	// 	"password":pass, 
-	// 	"phone":phone 
-	// } 
-// db.collection('details').insertOne(data,function(err, collection){ 
-// 		if (err) throw err; 
-// 		console.log("Record inserted Successfully"); 
-			
-// 	});
-	// firebase.auth().signInWithEmailAndPassword(email, password).catch(function(error) {
- //  // Handle Errors here.
- //  		var errorCode = error.code;
- //  		var errorMessage = error.message;
- //  // ...
-	// });
+	firebase.auth().signInWithEmailAndPassword(userid, passw).catch(function(error) {
+  // Handle Errors here.
+  		var errorCode = error.code;
+  		var errorMessage = error.message;
+  // ...
+	});
 
+	firebase.auth().onAuthStateChanged(function(user) {
+      if (user) {
+         console.log(user.email);
+         res.redirect('signin_success.html');
+         postdata(user.email);
+      // User is signed in.
+      } else {
+      // No user is signed in.
+      }
+   });
 
-//   firebase.auth().importUsers([{
-//   	uid: userid,
-//   	pass: passw
-
-// 	}]
-  
-// )
-//   .then(function(results) {
-//   	console.log(results);
-//     // results.errors.forEach(function(indexedError) {
-//     // 	console.log('Error importing user ' + indexedError.index);
-//     // 	return res.redirect('/');
-//     // });
-//     return res.redirect('/');
-//   })
-//   .catch(function(error) {
-//     console.log('Error importing users:', error);
-//     return res.redirect('/');
-//   });
+   console.log(req.body.user_name);
+   console.log("HTTP POST Request");
+   //res.send("200");
 
 
-	firebase.auth().getUser(userid)
-  .then(function(userRecord) {
-    // See the UserRecord reference doc for the contents of userRecord.
-    console.log('Successfully fetched user data:', userRecord.toJSON());
-  })
-  .catch(function(error) {
-    console.log('Error fetching user data:', error);
-  });
+  admin.auth().createCustomToken(userid)
+  	.then(function(customToken) {
+    // Send token back to client
+  	})
+  	.catch(function(error) {
+    	console.log('Error creating custom token:', error);
+  	});
 
 });
+
+
+function postdata(email){
+	var email_ = email;
+
+	app.post('/info', function(req, res){
+
+		var fullname = req.body.full_name;
+		var phonenumber = req.body.phone_number;
+		var laptop = req.body.laptop;
+		var docRef = storage.collection('users').doc(email_);
+		var setData = docRef.set({
+			FullName: fullname,
+			PhoneNumber: phonenumber,
+			Laptop: laptop
+		});
+		res.send("200");
+});
+
+}
+
+
+
 
 
 
