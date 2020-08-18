@@ -63,6 +63,7 @@ app.post('/sign_up', function(req,res){
   // Handle Errors here.
   		var errorCode = error.code;
   		var errorMessage = error.message;
+		
   // ...
 	});
 
